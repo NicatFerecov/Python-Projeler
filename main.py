@@ -1,6 +1,7 @@
 import json
 import os
 import asyncio
+import csv
 
 class Book:
     def __init__(self, author, title, page: int, isbn):
@@ -73,6 +74,54 @@ class Book:
         else:
             print(f"No books found by '{author_name}'.")
 
+    @staticmethod
+    def jsons_to_csv(csv_filename="books.csv"):
+        """
+        Bulunduğu klasördeki tüm kitap json dosyalarını tek bir CSV dosyasına aktarır.
+        """
+        books = [f for f in os.listdir() if f.endswith('.json')]
+        if not books:
+            print("No JSON books found.")
+            return
+
+        fieldnames = ["Author", "Title", "Page", "ISBN"]
+        with open(csv_filename, "w", newline='', encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for book_file in books:
+                with open(book_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    writer.writerow({
+                        "Author": data.get("Author", ""),
+                        "Title": data.get("Title", ""),
+                        "Page": data.get("Page", ""),
+                        "ISBN": data.get("ISBN", "")
+                    })
+        print(f"All books exported to {csv_filename}")
+
+    @staticmethod
+    def csv_to_jsons(csv_filename="books.csv"):
+        """
+        Verilen CSV dosyasındaki her satırı ayrı bir kitap json dosyasına dönüştürür.
+        """
+        if not os.path.exists(csv_filename):
+            print("CSV file not found.")
+            return
+
+        with open(csv_filename, "r", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                title = row.get("Title", "book")
+                filename = f"{title}.json"
+                with open(filename, "w", encoding="utf-8") as f:
+                    json.dump({
+                        "Author": row.get("Author", ""),
+                        "Title": title,
+                        "Page": row.get("Page", ""),
+                        "ISBN": row.get("ISBN", "")
+                    }, f, indent=4)
+        print("All books imported from CSV.")
+
 async def main():
     USERS = {
         "admin": "1234",
@@ -101,7 +150,9 @@ async def main():
         print("2. View book")
         print("3. List books")
         print("4. Search books by author")
-        print("5. Exit")
+        print("5. Export JSON to CSV")
+        print("6. Import CSV to JSON")
+        print("7. Exit")
 
         choice = input("What's Your Choice?: ")
 
@@ -134,6 +185,12 @@ async def main():
             await Book.search_books_by_author(author_name)
 
         elif choice == "5":
+            Book.jsons_to_csv()
+
+        elif choice == "6":
+            Book.csv_to_jsons()
+
+        elif choice == "7":
             print("Exiting...")
             break
 
